@@ -31,4 +31,17 @@ for (const file of eventFiles) {
     }
 }
 
+client.on('messageCreate', async (message) => {
+    if(message.content === "s!close") {
+        if (message.channel && message.channel.name && message.channel.name.startsWith('ticket-')) {
+            await message.channel.send('<:deleteTicket:1418954214402687047> • Fermeture du ticket dans 5 secondes...');
+            setTimeout(async () => {
+                await message.channel.delete();
+            }, 5000);
+        } else {
+            await message.delete();
+        }
+    }
+});
+
 client.login(process.env.APP_TOKEN);
