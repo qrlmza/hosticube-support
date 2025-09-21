@@ -17,7 +17,7 @@ module.exports = {
                 .setDescription("Pourquoi l\'utilisateur doit être explusé ?")
                 .setRequired(true)
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+        .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
     
     async execute(interaction) {
 
