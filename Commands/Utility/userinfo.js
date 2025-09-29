@@ -16,7 +16,7 @@ module.exports = {
         
         // Créer l'embed avec les informations de base
         const embed = new EmbedBuilder()
-            .setColor('#0099FF')
+            .setColor('#9E3737')
             .setTitle(`📋 Informations sur ${targetUser.tag}`)
             .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
             .addFields(
