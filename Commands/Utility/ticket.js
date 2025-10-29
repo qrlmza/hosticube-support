@@ -1,9 +1,9 @@
-const { SlashCommandBuilder, ChannelType, EmbedBuilder, MessageFlags, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { SlashCommandBuilder, ChannelType, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const color = require('colors/safe');
-const { all } = require('axios');
 require('dotenv').config();
 const formatDate = require('../../Scripts/getDate.js');
 const db = require('../../db');
+const logsChannelId = process.env.TICKET_LOGS_CHANNEL;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,41 +12,29 @@ module.exports = {
         .addStringOption(option =>
             option
                 .setName('raison')
-                .setDescription("Pourquoi nous contactez-vous ?")
+                .setDescription('Pourquoi nous contactez-vous ?')
                 .addChoices(
                     { name: 'Problème Technique', value: 'technique' },
                     { name: 'Problème de Facturation', value: 'facturation' },
-                    { name: 'Demande d\'aide', value: 'support' },
+                    { name: "Demande d'aide", value: 'support' },
                     { name: 'Commande de service', value: 'boutique' }
                 )
                 .setRequired(true)
         ),
-    
+
     async execute(interaction) {
-        
         const reason = interaction.options.getString('raison');
         const user = interaction.user;
         const now = formatDate();
+        const parent = '1415370672766451746';
 
-        const parent = "1415370672766451746";
-
-        // Récupération des informations utilisateur depuis la base de données
         let userInfo = null;
         let userServers = [];
         try {
-            // Récupérer l'email, uuid et id de l'utilisateur
-            const [users] = await db.query(
-                'SELECT id, email, uuid FROM users WHERE discord_id = ?',
-                [user.id]
-            );
-
+            const [users] = await db.query('SELECT id, email, uuid FROM users WHERE discord_id = ?', [user.id]);
             if (users.length > 0) {
                 userInfo = users[0];
-                // Récupérer tous les serveurs de l'utilisateur
-                const [servers] = await db.query(
-                    'SELECT uuidShort, name FROM servers WHERE owner_id = ?',
-                    [userInfo.id]
-                );
+                const [servers] = await db.query('SELECT uuidShort, name FROM servers WHERE owner_id = ?', [userInfo.id]);
                 userServers = servers;
             }
         } catch (dbError) {
@@ -56,11 +44,10 @@ module.exports = {
         const existingChannel = interaction.guild.channels.cache.find(
             channel => channel.name === `ticket-${interaction.user.username}`
         );
-
         if (existingChannel) {
             return interaction.reply({
                 content: `⚠️ Vous avez déjà un ticket ouvert : ${existingChannel}`,
-                flags: MessageFlags.Ephemeral,
+                ephemeral: true
             });
         }
 
@@ -68,17 +55,11 @@ module.exports = {
             const channel = await interaction.guild.channels.create({
                 name: `ticket-${user.username}`,
                 type: ChannelType.GuildText,
-                parent: parent,
+                parent,
                 permissionOverwrites: [
-                    {
-                        id: interaction.guild.id,
-                        deny: ['ViewChannel'],
-                    },
-                    {
-                        id: user.id,
-                        allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles'],
-                    }
-                ],
+                    { id: interaction.guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+                    { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] }
+                ]
             });
 
             const embed = new EmbedBuilder()
@@ -87,41 +68,55 @@ module.exports = {
                 .setColor('#9E3737')
                 .setTimestamp();
 
+            const logEmbed = new EmbedBuilder()
+                .setDescription(`<:newTicket:1418954216000589854> • ${user} a ouvert un ticket → <#${channel.id}>.`)
+                .setColor('#379e40');
+
             if (userInfo) {
                 let userFields = [
                     { name: '✉️ Email', value: `\`${userInfo.email}\``, inline: true },
                     { name: '📁 UUID', value: `\`${userInfo.uuid}\``, inline: true },
                     { name: '⛓️‍💥 Database ID', value: `\`${userInfo.id}\``, inline: false }
                 ];
-
                 if (userServers.length > 0) {
-                    const serversList = userServers.map(server => 
-                        `\`${server.uuidShort}\` - ${server.name}`
-                    ).join('\n');
+                    const serversList = userServers.map(s => `\`${s.uuidShort}\` - ${s.name}`).join('\n');
                     userFields.push({ name: 'Serveurs', value: serversList, inline: false });
                 } else {
                     userFields.push({ name: 'Serveurs', value: 'Aucun serveur trouvé', inline: false });
                 }
-
                 embed.addFields(userFields);
             }
 
-            embed.setFooter({ text: `Identifiant de ticket: ${user.id}`, iconURL: user.displayAvatarURL() })
+            embed.setFooter({ text: `Identifiant de ticket: ${user.id}`, iconURL: user.displayAvatarURL() });
 
-            const message = await channel.send({
+            const msg = await channel.send({
                 content: `<@${user.id}> • <@&1415370671424278644>`,
-                embeds: [embed],
+                embeds: [embed]
             });
 
-            message.pin();
+            if (logsChannelId) {
+                try {
+                    const logChannelObj = await interaction.client.channels.fetch(logsChannelId);
+                    if (logChannelObj && typeof logChannelObj.send === 'function') {
+                        await logChannelObj.send({ embeds: [logEmbed] }).catch(err => console.error(color.red("⚠️ Erreur lors de l'envoi du log : " + err)));
+                    } else {
+                        console.warn(color.yellow('⚠️ Le channel de logs est introuvable ou invalide.'));
+                    }
+                } catch (err) {
+                    console.error(color.red('⚠️ Impossible de récupérer le channel de logs: ' + err));
+                }
+            } else {
+                console.warn(color.yellow("⚠️ Aucune variable d'environnement TICKET_LOGS_CHANNEL définie."));
+            }
 
+            await msg.pin().catch(() => { });
             await interaction.reply({
                 content: `<:newTicket:1418954216000589854> • Votre ticket a bien été ouvert ! Rendez-vous dans le salon ${channel}.`,
-                flags: MessageFlags.Ephemeral,
+                ephemeral: true
             });
         } catch (error) {
             console.error(color.red("⚠️ Une erreur est survenue lors de l'ouverture d'un ticket de support." + error));
-            interaction.reply("⚠️ • Une erreur est survenue lors de l'ouverture de votre ticket...");
+            interaction.reply({ content: "⚠️ • Une erreur est survenue lors de l'ouverture de votre ticket...", ephemeral: true });
         }
-    },
+    }
 };
