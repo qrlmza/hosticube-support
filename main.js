@@ -63,7 +63,6 @@ client.on('messageCreate', async (message) => {
         const logEmbed = new EmbedBuilder()
             .setColor('#9E3737')
             .setDescription(`<:newTicket:1418954216000589854> • ${message.author} a fermé un ticket → <#${ch.id}>.`)
-            .setTimestamp();
 
         if (logsChannelId) {
             try {
