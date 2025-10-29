@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ChannelType, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, ChannelType, EmbedBuilder } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
 var color = require("colors/safe");
