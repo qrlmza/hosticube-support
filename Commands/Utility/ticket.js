@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ChannelType, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, ChannelType, EmbedBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const color = require('colors/safe');
 require('dotenv').config();
 const formatDate = require('../../Scripts/getDate.js');
@@ -47,7 +47,7 @@ module.exports = {
         if (existingChannel) {
             return interaction.reply({
                 content: `⚠️ Vous avez déjà un ticket ouvert : ${existingChannel}`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -112,11 +112,11 @@ module.exports = {
             await msg.pin().catch(() => { });
             await interaction.reply({
                 content: `<:newTicket:1418954216000589854> • Votre ticket a bien été ouvert ! Rendez-vous dans le salon ${channel}.`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         } catch (error) {
             console.error(color.red("⚠️ Une erreur est survenue lors de l'ouverture d'un ticket de support." + error));
-            interaction.reply({ content: "⚠️ • Une erreur est survenue lors de l'ouverture de votre ticket...", ephemeral: true });
+            interaction.reply({ content: "⚠️ • Une erreur est survenue lors de l'ouverture de votre ticket...", flags: MessageFlags.Ephemeral });
         }
     }
 };

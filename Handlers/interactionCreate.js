@@ -1,4 +1,4 @@
-const { Events } = require('discord.js');
+const { Events, MessageFlags } = require('discord.js');
 var color = require('colors/safe');
 
 module.exports = {
@@ -22,7 +22,7 @@ module.exports = {
             
             const errorMessage = {
                 content: '❌ Une erreur est survenue lors de l\'exécution de cette commande !',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             };
             
             if (interaction.replied || interaction.deferred) {
