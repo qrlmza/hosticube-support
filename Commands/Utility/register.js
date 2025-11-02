@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const axios = require('axios');
 require('dotenv').config();
-const db = require('../../db');
+const { getPool } = require('../../db');
 const color = require('colors/safe');
 const pteroqUrl = process.env.PTEROQ_URL;
 const pteroqKey = process.env.PTEROQ_KEY;
@@ -71,6 +71,7 @@ module.exports = {
     
     async execute(interaction) {
         
+        const db = getPool('panel');
         const userId = interaction.user.id;
         const email = interaction.options.getString("email");
         const firstName = interaction.options.getString("prenom");
